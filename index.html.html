@@ -1,0 +1,328 @@
+<!DOCTYPE html> 
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sorteio Sensual com Roleta</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1a1a, #330000);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 30px;
+    }
+    #positionName {
+      font-size: 1.8em;
+      margin: 20px 0 10px;
+      transition: opacity 0.5s ease;
+    }
+    #positionDesc {
+      font-size: 1em;
+      margin: 0 20px 20px;
+      max-width: 400px;
+      color: #ffcccc;
+      transition: opacity 0.5s ease;
+    }
+    .category-buttons {
+      margin-bottom: 20px;
+    }
+    .category-buttons button {
+      margin: 5px;
+      background-color: #99002e;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 1em;
+      cursor: pointer;
+      transition: background 0.3s ease, transform 0.2s;
+    }
+    .category-buttons button:hover {
+      background-color: #cc0033;
+      transform: scale(1.05);
+    }
+    .category-buttons button.active {
+      background-color: #ff3366;
+    }
+    button.sortear {
+      background-color: #ff0033;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 30px;
+      font-size: 1.2em;
+      cursor: pointer;
+      transition: background 0.3s ease, transform 0.2s;
+      margin-top: 10px;
+    }
+    button.sortear:hover {
+      background-color: #cc0022;
+      transform: scale(1.05);
+    }
+    #wheelContainer {
+      position: relative;
+      margin: 20px 0;
+      width: 350px;
+      height: 350px;
+    }
+    canvas {
+      border-radius: 50%;
+      background-color: #330000;
+      box-shadow: 0 0 15px #cc0033;
+    }
+    #pointer {
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0; 
+      height: 0; 
+      border-left: 15px solid transparent;
+      border-right: 15px solid transparent;
+      border-bottom: 25px solid #ff0033;
+      filter: drop-shadow(0 0 3px #ff6699);
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔥 Sorteie sua posição 🔥</h1>
+  <div class="category-buttons">
+    <button id="btn-normal" onclick="selectCategory('normal')">Normal</button>
+    <button id="btn-avancada" onclick="selectCategory('avancada')">Avançada</button>
+    <button id="btn-oral" onclick="selectCategory('oral')">Oral</button>
+    <button id="btn-surpresa" onclick="selectCategory('surpresa')">Surpresa</button>
+  </div>
+
+  <div id="wheelContainer">
+    <div id="pointer"></div>
+    <canvas id="wheel" width="350" height="350"></canvas>
+  </div>
+
+  <button class="sortear" id="spinBtn">Girar a Roleta</button>
+
+  <div id="positionName"></div>
+  <div id="positionDesc"></div>
+
+  <audio id="sfx" src="https://www.soundjay.com/human/moan-01.mp3"></audio>
+
+  <script>
+    const canvas = document.getElementById('wheel');
+    const ctx = canvas.getContext('2d');
+    const positionNameEl = document.getElementById('positionName');
+    const positionDescEl = document.getElementById('positionDesc');
+    const spinBtn = document.getElementById('spinBtn');
+    const audio = document.getElementById('sfx');
+
+    let currentCategory = 'normal';
+    let segments = [];
+    let colors = [];
+    let startAngle = 0;
+    let spinning = false;
+
+    // Novas posições atualizadas aqui:
+    const positions = {
+      normal: [
+        { name: "Missionário Modificado", desc: "Deite-se de costas e peça para o parceiro(a) se posicionar por cima, com os joelhos flexionados e os pés apoiados no colchão. Essa variação permite maior contato corporal e facilita o movimento de ambos." },
+        { name: "Sentados Frente a Frente", desc: "Sente-se de pernas cruzadas ou em posição confortável, com o parceiro(a) sentado(a) de frente para você. Essa posição permite contato visual intenso e facilita o beijo durante o ato." },
+        { name: "Em Pé Abraçados", desc: "Fique em pé, com os braços ao redor do parceiro(a), que também estará em pé. Essa posição permite movimentos lentos e profundos, além de ser ideal para momentos espontâneos." },
+        { name: "No Sofá", desc: "Sente-se na beirada do sofá, com os pés no chão, e peça para o parceiro(a) se posicionar entre suas pernas. Essa posição permite contato visual constante e é ideal para carícias." },
+        { name: "Deitado de Lado", desc: "Deitem-se de lado, com os corpos alinhados. Essa posição é relaxante e permite movimentos lentos, sendo ideal para momentos íntimos e prolongados." },
+        { name: "Cadeira Reclinada", desc: "Sente-se em uma cadeira reclinada, com os pés apoiados no chão. O parceiro(a) pode se posicionar entre suas pernas ou sobre você, dependendo do conforto de ambos." },
+        { name: "Sentado no Colchão", desc: "Sente-se no colchão, com as pernas esticadas ou cruzadas. O parceiro(a) pode se posicionar sobre você ou entre suas pernas, permitindo diferentes ângulos de penetração." },
+        { name: "Deitado com Pernas Elevadas", desc: "Deite-se de costas e peça para o parceiro(a) segurar suas pernas, elevando-as durante o ato. Essa posição permite penetração profunda e contato visual constante." },
+        { name: "Na Borda da Cama", desc: "Deite-se na beirada da cama, com os pés no chão. O parceiro(a) pode se posicionar entre suas pernas ou sobre você, dependendo do conforto de ambos." },
+        { name: "Em Pé com Apoio", desc: "Fique em pé, com as mãos apoiadas em uma superfície firme, como uma parede ou mesa. O parceiro(a) pode se posicionar atrás de você ou de frente, dependendo do conforto de ambos." },
+        { name: "Senta na Mesa", desc: "Sente-se na beirada de uma mesa ou superfície elevada, com os pés no chão. O parceiro(a) pode se posicionar entre suas pernas ou sobre você, permitindo diferentes ângulos de penetração." },
+        { name: "Abraçados na Cama", desc: "Deitem-se de lado, com os corpos alinhados e os braços ao redor do parceiro(a). Essa posição é íntima e permite movimentos lentos e profundos." },
+        { name: "Deitado Com Pernas Cruzadas", desc: "Deitem-se de costas, com as pernas cruzadas. Essa posição permite contato físico constante e é ideal para momentos íntimos e prolongados." },
+        { name: "Pernas para o Alto", desc: "Deite-se de costas e peça para o parceiro(a) segurar suas pernas, elevando-as durante o ato. Essa posição permite penetração profunda e contato visual constante." },
+        { name: "De Frente na Cama", desc: "Deite-se de bruços na cama, com os braços esticados à frente. O parceiro(a) pode se posicionar sobre você, permitindo diferentes ângulos de penetração." },
+        { name: "Sentado de Costas", desc: "Sente-se com as pernas esticadas ou cruzadas. O parceiro(a) pode se posicionar atrás de você, permitindo diferentes ângulos de penetração." },
+        { name: "Papai e Mamãe", desc: "Deite-se de costas, com os joelhos flexionados e os pés no colchão. O parceiro(a) se posiciona por cima, permitindo contato visual constante e movimentos lentos." },
+        { name: "De Quatro", desc: "Fique de mãos e joelhos, com as costas retas. O parceiro(a) se posiciona atrás de você, permitindo penetração profunda e controle do ritmo." },
+        { name: "Cavaleira", desc: "Sente-se ou deite-se, com as pernas esticadas ou cruzadas. O parceiro(a) se posiciona sobre você, controlando o ritmo e a profundidade da penetração." },
+        { name: "Frango Assado", desc: "Deite-se de costas, com as pernas elevadas e os pés apoiados nos ombros do parceiro(a). Essa posição permite penetração profunda e contato visual constante." },
+        { name: "Colherzinha", desc: "Deitem-se de lado, com os corpos alinhados. Essa posição é íntima e permite movimentos lentos e profundos, sendo ideal para momentos íntimos e prolongados." }
+      ],
+      avancada: [
+        { name: "De Pé Com Apoio", desc: "Fique em pé, com as mãos apoiadas em uma superfície firme, como uma parede ou mesa. O parceiro(a) pode se posicionar atrás de você ou de frente, dependendo do conforto de ambos." },
+        { name: "Deitado Com Pernas Elevadas", desc: "Deite-se de costas e peça para o parceiro(a) segurar suas pernas, elevando-as durante o ato. Essa posição permite penetração profunda e contato visual constante." },
+        { name: "Em Pé Abraçados", desc: "Fique em pé, com os braços ao redor do parceiro(a), que também estará em pé. Essa posição permite movimentos lentos e profundos, além de ser ideal para momentos espontâneos." },
+        { name: "Cadeira Reclinada", desc: "Sente-se em uma cadeira reclinada, com os pés apoiados no chão. O parceiro(a) pode se posicionar entre suas pernas ou sobre você, dependendo do conforto de ambos." },
+        { name: "Senta na Mesa", desc: "Sente-se na beirada de uma mesa ou superfície elevada, com os pés no chão. O parceiro(a) pode se posicionar entre suas pernas ou sobre você, permitindo diferentes ângulos de penetração." },
+        { name: "Na Borda da Cama", desc: "Deite-se na beirada da cama, com os pés no chão. O parceiro(a) pode se posicionar entre suas pernas ou sobre você, dependendo do conforto de ambos." },
+        { name: "Sentado no Colchão", desc: "Sente-se no colchão, com as pernas esticadas ou cruzadas. O parceiro(a) pode se posicionar sobre você ou entre suas pernas, permitindo diferentes ângulos de penetração." },
+        { name: "Deitado de Lado", desc: "Deitem-se de lado, com os corpos alinhados. Essa posição é relaxante e permite movimentos lentos, sendo ideal para momentos íntimos e prolongados." },
+        { name: "Abraçados na Cama", desc: "Deitem-se de lado, com os corpos alinhados e os braços ao redor do parceiro(a). Essa posição é íntima e permite movimentos lentos e profundos." },
+        { name: "De Quatro", desc: "Fique de mãos e joelhos, com as costas retas. O parceiro(a) se posiciona atrás de você, permitindo penetração profunda e controle do ritmo." }
+      ],
+      oral: [
+        { name: "Sentado na Beira da Cama", desc: "Sente-se na beira da cama com as pernas para fora e o parceiro(a) ajoelhado(a) à sua frente para realizar sexo oral." },
+        { name: "Deitado de Costas", desc: "Deite-se de costas com o parceiro(a) ajoelhado(a) entre suas pernas para sexo oral." },
+        { name: "De Quatro", desc: "Fique de quatro enquanto o parceiro(a) realiza sexo oral por trás." },
+        { name: "Cachorrinho", desc: "Fique de quatro e o parceiro(a) realiza sexo oral pela frente." },
+        { name: "Sentado em uma Cadeira", desc: "Sente-se em uma cadeira enquanto o parceiro(a) realiza sexo oral." },
+        // +10 posições adicionadas:
+        { name: "Deitado de Lado", desc: "Deite-se de lado enquanto o parceiro(a) realiza sexo oral, proporcionando conforto e intimidade." },
+        { name: "Em Pé", desc: "Fique em pé enquanto o parceiro(a) ajoelha-se para realizar sexo oral, ideal para momentos rápidos e excitantes." },
+        { name: "No Banquinho", desc: "Sente-se em um banquinho baixo enquanto o parceiro(a) realiza sexo oral, permitindo diferentes ângulos." },
+        { name: "Na Beira da Pia", desc: "Sente-se na beira da pia ou balcão enquanto o parceiro(a) realiza sexo oral, misturando sensualidade e surpresa." },
+        { name: "Sentado no Sofá", desc: "Sente-se confortavelmente no sofá enquanto o parceiro(a) realiza sexo oral, para momentos de relaxamento e prazer." },
+        { name: "De Costas", desc: "Deite-se de bruços enquanto o parceiro(a) realiza sexo oral, ideal para variar a rotina." },
+        { name: "Cruzado", desc: "Sente-se com as pernas cruzadas enquanto o parceiro(a) realiza sexo oral, permitindo contato visual e proximidade." },
+        { name: "Na Cama Com Travesseiro", desc: "Deite-se de costas com um travesseiro sob os quadris para melhor acesso durante o sexo oral." },
+        { name: "Deitado com Cabeça para o Chão", desc: "Deite-se com a cabeça pendurada para fora da cama enquanto o parceiro(a) está em pé realizando sexo oral." },
+        { name: "Joelhos ao Lado", desc: "Deite-se de lado, com os joelhos dobrados, facilitando o acesso para o parceiro(a) realizar sexo oral." }
+      ],
+      surpresa: [
+        { name: "Posição do Coelho", desc: "Variante do cachorrinho, onde há mais contato corporal e ritmo acelerado." },
+        { name: "X do Amor", desc: "Deitado(a) de costas com as pernas cruzadas em forma de X, permitindo diferentes ângulos." },
+        { name: "Posição da Borboleta", desc: "Deite-se de costas com as pernas abertas e o parceiro(a) ajoelhado(a) entre as pernas." },
+        // +15 posições adicionadas:
+        { name: "Tesoura Invertida", desc: "Deite-se de lado com as pernas cruzadas, formando uma tesoura invertida para contato intenso." },
+        { name: "Ponte Invertida", desc: "Levante o quadril formando uma ponte, com o parceiro(a) posicionado atrás para penetração profunda." },
+        { name: "Cadeira Suspensa", desc: "O parceiro(a) senta em uma cadeira enquanto você se senta no colo, criando uma sensação de suspensão." },
+        { name: "Deitado com Pernas Envolventes", desc: "Deite-se e envolva as pernas ao redor do parceiro(a) para maior intimidade." },
+        { name: "Em Pé com Abraço", desc: "Fique em pé e abrace o parceiro(a) enquanto ambos se movimentam juntos." },
+        { name: "Sentado no Banquinho", desc: "Sente-se em um banquinho enquanto o parceiro(a) se posiciona à sua frente." },
+        { name: "Posição da Tesoura", desc: "Deite-se de lado entrelaçando as pernas com as do parceiro(a) em formato de tesoura." },
+        { name: "Deitado com Travesseiro Sob o Quadril", desc: "Melhora o ângulo de penetração para maior conforto e prazer." },
+        { name: "Abraço de Corpo Inteiro", desc: "Deitados de frente, com corpos completamente grudados e braços entrelaçados." },
+        { name: "Pernas Cruzadas Sentados", desc: "Sentados com pernas cruzadas, frente a frente, para contato visual e íntimo." },
+        { name: "Posição do Lençol", desc: "Ambos cobertos pelo lençol, explorando carícias e sensações táteis." },
+        { name: "De Quatro com Apoio de Braço", desc: "Fique de quatro apoiado em um braço para variar o ritmo e conforto." },
+        { name: "Sentados com Costas Juntas", desc: "Sentem-se com as costas encostadas, apoiando um ao outro para intimidade." },
+        { name: "Pernas ao Ombro", desc: "Deite-se de costas com as pernas elevadas e apoiadas nos ombros do parceiro(a)." },
+        { name: "Deitado com Perna Esticada", desc: "Deite-se com uma perna esticada e a outra flexionada para maior variação." }
+      ]
+    };
+
+    // Cores para as categorias
+    const categoryColors = {
+      normal: ['#cc3366', '#cc6699', '#ff99cc', '#ff66aa', '#ff3399', '#ff007f'],
+      avancada: ['#663399', '#9966cc', '#cc99ff', '#9966ff', '#9933cc', '#660099'],
+      oral: ['#ff3300', '#ff6633', '#ff9966', '#ff3300', '#cc3300', '#ff4400'],
+      surpresa: ['#33cc33', '#66cc66', '#99cc99', '#33cc33', '#339933', '#66ff66']
+    };
+
+    function selectCategory(category) {
+      if(spinning) return; // bloqueia troca durante a roleta girando
+
+      currentCategory = category;
+      // Atualizar botões
+      ['normal','avancada','oral','surpresa'].forEach(cat => {
+        document.getElementById(`btn-${cat}`).classList.toggle('active', cat === category);
+      });
+
+      segments = positions[category];
+      colors = categoryColors[category];
+
+      drawWheel();
+      positionNameEl.textContent = '';
+      positionDescEl.textContent = '';
+    }
+
+    function drawWheel() {
+      const len = segments.length;
+      const arcSize = (2 * Math.PI) / len;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.lineWidth = 2;
+      ctx.font = '14px Segoe UI';
+
+      for(let i=0; i < len; i++) {
+        const angle = startAngle + i * arcSize;
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.beginPath();
+        ctx.moveTo(canvas.width/2, canvas.height/2);
+        ctx.arc(canvas.width/2, canvas.height/2, canvas.width/2 - 10, angle, angle + arcSize);
+        ctx.lineTo(canvas.width/2, canvas.height/2);
+        ctx.fill();
+        ctx.strokeStyle = '#660011';
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(canvas.width/2, canvas.height/2);
+        ctx.rotate(angle + arcSize/2);
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = "right";
+        ctx.fillText(segments[i].name, canvas.width/2 - 20, 5);
+        ctx.restore();
+      }
+    }
+
+    let spinTimeout = null;
+    let spinAngleStart = 0;
+    let spinTime = 0;
+    let spinTimeTotal = 0;
+
+    function spin() {
+      if(spinning) return;
+      spinning = true;
+      audio.pause();
+      audio.currentTime = 0;
+      audio.play();
+
+      spinAngleStart = Math.random() * 10 + 10;
+      spinTime = 0;
+      spinTimeTotal = Math.random() * 3 + 4 * 1000; // entre 4 e 7 segundos
+
+      rotateWheel();
+    }
+
+    function rotateWheel() {
+      spinTime += 30;
+      if(spinTime >= spinTimeTotal) {
+        stopRotateWheel();
+        return;
+      }
+      const spinAngle = spinAngleStart - easeOut(spinTime, 0, spinAngleStart, spinTimeTotal);
+      startAngle += (spinAngle * Math.PI / 180);
+      drawWheel();
+      spinTimeout = setTimeout(rotateWheel, 30);
+    }
+
+    function stopRotateWheel() {
+      clearTimeout(spinTimeout);
+      const degrees = startAngle * 180 / Math.PI + 90;
+      const arcd = 360 / segments.length;
+      const index = Math.floor((360 - (degrees % 360)) / arcd) % segments.length;
+      const selected = segments[index];
+
+      positionNameEl.style.opacity = 0;
+      positionDescEl.style.opacity = 0;
+
+      setTimeout(() => {
+        positionNameEl.textContent = selected.name;
+        positionDescEl.textContent = selected.desc;
+        positionNameEl.style.opacity = 1;
+        positionDescEl.style.opacity = 1;
+        spinning = false;
+      }, 500);
+    }
+
+    // Ease out function para desaceleração suave
+    function easeOut(t, b, c, d) {
+      const ts = (t/=d)*t;
+      const tc = ts*t;
+      return b+c*(tc + -3*ts + 3*t);
+    }
+
+    // Inicializa categoria padrão
+    selectCategory('normal');
+
+    spinBtn.addEventListener('click', spin);
+  </script>
+</body>
+</html>
